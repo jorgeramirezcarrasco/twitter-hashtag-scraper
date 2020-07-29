@@ -24,14 +24,20 @@ class TwitterHashtagScraper():
     """Twitter Hashtag Scraper
     """
 
-    def __init__(self, hashtag, use_proxy):
+    def __init__(self, hashtag, use_proxy, output_path=None, max_tweets=None):
         """Twitter Hashtag Scraper constructor
 
-        :param hashtag: hashtag to scrap
-        :param use_proxy: boolean to activate proxies or not
+        Args:
+            hashtag (str): hashtag to scrap
+            use_proxy (boolean): boolean to activate proxies or not
+            output_path (str, optional): output path. Defaults to None.
+            max_tweets (int, optional): max number of tweets to download else try to get tweets until scroll is over. Defaults to None.
         """
+        
         self.hashtag = hashtag
         self.use_proxy = use_proxy
+        self.output_path = output_path
+        self.max_tweets = max_tweets
 
     def _init_proxies(self):
         """Function to obtain available proxies from sslproxies
@@ -86,13 +92,18 @@ class TwitterHashtagScraper():
 
 
 
-    def get_hashtag_timeline(self):
+    def _get_hashtag_timeline(self):
         """Function to obain the hashtag timeline from Twitter
 
         Returns:
             dict -- dict with tweets stored
             dict -- dict with users stored
         """
+        tweets_dict = self._create_dict_from_structure('tweets_hashtag')
+        users_dict = self._create_dict_from_structure('users_hashtag')
+
+        print(f"Collecting data from Twitter about: {self.hashtag}")
+
         has_more_items = True
         last_tweet_id = 0
         count_tweets = 0
@@ -100,10 +111,9 @@ class TwitterHashtagScraper():
         proxy_active_value = ""
         min_position = math.inf
         try:
-
             # Iterate simulating scroll
-            while ((has_more_items) & (count_tweets < 300)):
-                print(count_tweets)
+            while (has_more_items):
+                print(f"{count_tweets}/{self.max_tweets if self.max_tweets else 'Max Scroll'} tweets obtained...")
                 headers = {
                     'Host': 'twitter.com',
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:55.0) Gecko/20100101 Firefox/55.0',
@@ -148,6 +158,10 @@ class TwitterHashtagScraper():
                 else:
                     has_more_items = False
 
+                if self.max_tweets:
+                    if count_tweets > self.max_tweets:
+                        has_more_items = False
+
                 time.sleep(0.1)
         except Exception as e:
             print(e)
@@ -163,7 +177,7 @@ class TwitterHashtagScraper():
         Returns:
             dict -- template dict to fill
         """
-        with open('../artifacts/scraper_outputs.json') as json_file:
+        with open('./artifacts/scraper_outputs.json') as json_file:
             json_file_item = json.load(json_file)
             dict_struct = {}
             for column in json_file_item[key]:
@@ -173,14 +187,16 @@ class TwitterHashtagScraper():
     def collect(self):
         """Function to execute a search on twitter from the initial term
         """
-        tweets_dict = self._create_dict_from_structure('tweets_hashtag')
-        users_dict = self._create_dict_from_structure('users_hashtag')
-
-        tweets_dict, users_dict = self.get_hashtag_timeline()
+    
+        tweets_dict, users_dict = self._get_hashtag_timeline()
 
         tweets_df = pd.DataFrame(tweets_dict)
-        users_df = pd.DataFrame(users_dict)
+        users_df = pd.DataFrame(users_dict).drop_duplicates()
 
         date_str = str(datetime.now()).split(' ')[0]
-        tweets_df.to_csv(f'./results_{self.hashtag}_{date_str}.csv', index=False)
-        users_df.to_csv(f'./results_users_{self.hashtag}_{date_str}.csv', index=False)
+        if self.output_path:
+            tweets_df.to_csv(f'{self.output_path}/results_{self.hashtag}_{date_str}.csv', index=False)
+            users_df.to_csv(f'{self.output_path}/results_users_{self.hashtag}_{date_str}.csv', index=False)
+        else:
+            tweets_df.to_csv(f'./results_{self.hashtag}_{date_str}.csv', index=False)
+            users_df.to_csv(f'./results_users_{self.hashtag}_{date_str}.csv', index=False)
