@@ -15,7 +15,7 @@ import requests
 
 import pandas as pd
 from bs4 import BeautifulSoup
-from utils_beautiful_soup import (
+from .utils_beautiful_soup import (
     bs_retweet_parser, bs_tweet_parser,
     bs_twitter_tweets_retweets_extractor_iterator)
 
@@ -177,12 +177,29 @@ class TwitterHashtagScraper():
         Returns:
             dict -- template dict to fill
         """
-        with open('./artifacts/scraper_outputs.json') as json_file:
-            json_file_item = json.load(json_file)
-            dict_struct = {}
-            for column in json_file_item[key]:
-                dict_struct[column] = []
-            return dict_struct
+        
+        json_file_item = {"tweets_hashtag": [
+                                "id_tweet",
+                                "id_user",
+                                "user",
+                                "link_tweet",
+                                "timestamp",
+                                "text",
+                                "replies_count",
+                                "retweets_count",
+                                "likes_count"
+                            ],
+                            "users_hashtag": [
+                                "username",
+                                "id_user",
+                                "img_user",
+                                "link_user"
+                            ]
+                        }
+        dict_struct = {}
+        for column in json_file_item[key]:
+            dict_struct[column] = []
+        return dict_struct
 
     def collect(self):
         """Function to execute a search on twitter from the initial term

@@ -1,27 +1,18 @@
 from setuptools import setup, find_packages
 import pathlib
 
-here = pathlib.Path(__file__).parent.resolve()
-
-# Get the long description from the README file
-long_description = (here / 'README.md').read_text(encoding='utf-8')
-
-# Arguments marked as "Required" below must be included for upload to PyPI.
-# Fields marked as "Optional" may be commented out.
-
 setup(
 
     name='twitter-hashtag-scraper',
-    version='1.0.0', 
+    version='1.0.8', 
     description='Unofficial Twitter Hashtag Scraper using free proxies', 
-    long_description=long_description, 
+    packages=['twitter_hashtag_scraper'],
     url='https://github.com/jramirezc93/twitter-hashtag-scraper',  
     author='Jorge Ramírez Carrasco',
     keywords='twitter, web scraping',
     python_requires='>=3.6, <4',
     install_requires=[
                     'beautifulsoup4>=4.9.1',
-                    'bs4>=0.0.1',
                     'certifi>=2020.6.20',
                     'chardet>=3.0.4',
                     'idna>=2.10',
