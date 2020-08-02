@@ -1,11 +1,18 @@
 from setuptools import setup, find_packages
 import pathlib
 
-setup(
+# read the contents of your README file
+from os import path
+this_directory = path.abspath(path.dirname(__file__))
+with open('README.md', encoding='utf-8') as f:
+    long_description = f.read()
 
+setup(
     name='twitter-hashtag-scraper',
-    version='1.0.8', 
+    version='1.1.0', 
     description='Unofficial Twitter Hashtag Scraper using free proxies', 
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     packages=['twitter_hashtag_scraper'],
     url='https://github.com/jramirezc93/twitter-hashtag-scraper',  
     author='Jorge Ramírez Carrasco',

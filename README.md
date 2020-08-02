@@ -1,6 +1,6 @@
 # Twitter Hashtag Scraper
 
-Unofficial Twitter Hashtag Scraper using free proxies.
+Unofficial Twitter hashtag scraper using free proxies. No API keys required
 
 ----
 
