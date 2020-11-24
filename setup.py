@@ -9,12 +9,12 @@ with open('README.md', encoding='utf-8') as f:
 
 setup(
     name='twitter-hashtag-scraper',
-    version='1.1.0', 
+    version='1.2.2', 
     description='Unofficial Twitter Hashtag Scraper using free proxies', 
     long_description=long_description,
     long_description_content_type='text/markdown',
-    packages=['twitter_hashtag_scraper'],
-    url='https://github.com/jramirezc93/twitter-hashtag-scraper',  
+    packages=[''],
+    url='https://github.com/jorgeramirezcarrasco/twitter-hashtag-scraper',  
     author='Jorge Ramírez Carrasco',
     keywords='twitter, web scraping',
     python_requires='>=3.6, <4',
@@ -32,5 +32,5 @@ setup(
                     'six>=1.15.0',
                     'soupsieve>=2.0.1',
                     'urllib3>=1.25.10'
-                    ]
+                                        ]
 )

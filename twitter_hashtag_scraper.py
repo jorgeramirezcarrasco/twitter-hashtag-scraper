@@ -14,21 +14,19 @@ from re import findall
 import requests
 
 import pandas as pd
-from bs4 import BeautifulSoup
-from .utils_beautiful_soup import (
-    bs_retweet_parser, bs_tweet_parser,
-    bs_twitter_tweets_retweets_extractor_iterator)
+from utils_json import json_tweet_parser
 
 
 class TwitterHashtagScraper():
     """Twitter Hashtag Scraper
     """
 
-    def __init__(self, hashtag, use_proxy, output_path=None, max_tweets=None):
+    def __init__(self, hashtag, x_guest_token, use_proxy, output_path=None, max_tweets=None):
         """Twitter Hashtag Scraper constructor
 
         Args:
             hashtag (str): hashtag to scrap
+            x_guest_token (str): a valid guest token
             use_proxy (boolean): boolean to activate proxies or not
             output_path (str, optional): output path. Defaults to None.
             max_tweets (int, optional): max number of tweets to download else try to get tweets until scroll is over. Defaults to None.
@@ -38,6 +36,7 @@ class TwitterHashtagScraper():
         self.use_proxy = use_proxy
         self.output_path = output_path
         self.max_tweets = max_tweets
+        self.x_guest_token = x_guest_token
 
     def _init_proxies(self):
         """Function to obtain available proxies from sslproxies
@@ -72,7 +71,7 @@ class TwitterHashtagScraper():
                 if proxy_active != 1:
                     proxy_active_value = next(proxy_pool)
                 try:
-                    response = requests.get('https://httpbin.org/ip', timeout=3.0, proxies={
+                    response = requests.get('https://httpbin.org/ip', timeout=2.0, proxies={
                                             "http": 'http://' + proxy_active_value, "https": 'https://' + proxy_active_value})
                     page = requests.get(url, headers=headers, params=params, proxies={
                                         "http": 'http://' + proxy_active_value, "https": 'https://' + proxy_active_value})
@@ -115,41 +114,65 @@ class TwitterHashtagScraper():
             while (has_more_items):
                 print(f"{count_tweets}/{self.max_tweets if self.max_tweets else 'Max Scroll'} tweets obtained...")
                 headers = {
-                    'Host': 'twitter.com',
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:55.0) Gecko/20100101 Firefox/55.0',
-                    'Accept': 'application/json, text/javascript, */*; q=0.01',
-                    'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
-                    'Referer': 'https://twitter.com/hashtag/'+str(self.hashtag)+'?f=tweets&vertical=default&src=hash',
-                    'X-Twitter-Active-User': 'yes',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'DNT': '1',
-                    'Connection': 'keep-alive',
-                }
+                        'authority': 'api.twitter.com',
+                        'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
+                        'x-twitter-client-language': 'es',
+                        'x-guest-token': str(self.x_guest_token),
+                        'x-twitter-active-user': 'yes',
+                        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36',
+                        'accept': '*/*',
+                        'origin': 'https://twitter.com',
+                        'sec-fetch-site': 'same-site',
+                        'sec-fetch-mode': 'cors',
+                        'sec-fetch-dest': 'empty',
+                        'referer': 'https://twitter.com/',
+                        'accept-language': 'es-ES,es;q=0.9',
+                    }
 
                 params = (
-                    ('f', 'tweets'),
-                    ('vertical', 'default'),
-                    ('q', '#'+str(self.hashtag)+''),
-                    ('src', 'hash'),
-                    ('lang', 'es'),
-                    ('max_position', str(min_position)),
-                    ('reset_error_state', 'false'),
-                )
+                        ('include_profile_interstitial_type', '1'),
+                        ('include_blocking', '1'),
+                        ('include_blocked_by', '1'),
+                        ('include_followed_by', '1'),
+                        ('include_want_retweets', '1'),
+                        ('include_mute_edge', '1'),
+                        ('include_can_dm', '1'),
+                        ('include_can_media_tag', '1'),
+                        ('skip_status', '1'),
+                        ('cards_platform', 'Web-12'),
+                        ('include_cards', '1'),
+                        ('include_ext_alt_text', 'true'),
+                        ('include_quote_count', 'true'),
+                        ('include_reply_count', '1'),
+                        ('tweet_mode', 'extended'),
+                        ('include_entities', 'true'),
+                        ('include_user_entities', 'true'),
+                        ('include_ext_media_color', 'true'),
+                        ('include_ext_media_availability', 'true'),
+                        ('send_error_codes', 'true'),
+                        ('simple_quoted_tweet', 'true'),
+                        ('q', '#'+str(self.hashtag)+''),
+                        ('count', '20'),
+                        ('query_source', 'hashtag_click'),
+                        ('cursor', str(min_position)),
+                        ('pc', '1'),
+                        ('spelling_corrections', '1'),
+                        ('ext', 'mediaStats,highlightedLabel'),
+                    )
 
-                url = 'https://twitter.com/i/search/timeline'
+
+                url = 'https://api.twitter.com/2/search/adaptive.json'
                 proxy_active, proxy_active_value, page = self._make_request(
                     proxy_active, proxy_active_value, url, headers, params)
-
                 data = json.loads(page.content)
-                min_position = data["min_position"]
-                (tweets, retweets) = bs_twitter_tweets_retweets_extractor_iterator(data)
-                for tweet in tweets:
-                    (tweets_dict, users_dict) = bs_tweet_parser(
-                        tweet, tweets_dict, users_dict)
-                for tweet in retweets:
-                    (tweets_dict, users_dict) = bs_retweet_parser(
-                        tweet, tweets_dict, users_dict)
-
+                cursor_item_init = [d for d in data["timeline"]["instructions"][0]["addEntries"]["entries"] if d['entryId'] == 'sq-cursor-bottom']
+                if cursor_item_init:
+                    cursor_item = cursor_item_init[0]
+                else:
+                    cursor_item = data["timeline"]["instructions"][-1]["replaceEntry"]["entry"]
+                min_position = cursor_item["content"]["operation"]["cursor"]["value"]
+                for tweet in data["globalObjects"]["tweets"].keys():
+                    (tweets_dict, users_dict) = json_tweet_parser(data["globalObjects"]["tweets"][tweet],data["globalObjects"]["users"], tweets_dict, users_dict)
                 count_tweets = count_tweets+20
                 if len(tweets_dict["id_tweet"]) > 0:
                     if last_tweet_id == tweets_dict["id_tweet"][-1]:
